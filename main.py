@@ -108,7 +108,12 @@ def combinar_imagens(imagem1_path, imagem2_path):
     """Combina duas imagens lado a lado preservando resolução original"""
     try:
         img1 = Image.open(imagem1_path)
-        img2 = Image.open(imagem2_path)
+        
+        # Se imagem2_path é None, cria uma imagem em branco do mesmo tamanho
+        if imagem2_path is None:
+            img2 = Image.new('RGB', img1.size, 'white')
+        else:
+            img2 = Image.open(imagem2_path)
         
         # Mantém as imagens em sua resolução original
         # Apenas ajusta a altura para que ambas tenham a mesma altura
@@ -291,55 +296,128 @@ def main(input_path, output_file=None, tamanho_grupo="A6"):
     print(f"Tamanho de cada grupo: {tamanho_grupo} ({largura_grupo:.1f} x {altura_grupo:.1f} pontos)")
     print(f"Tamanho da página final: {largura_pagina:.1f} x {altura_pagina:.1f} pontos (4x o tamanho do grupo)")
     
-    # Nova lógica: 2 pares por página (4 imagens por página). Se sobrar menos de 4 imagens, cada par vai para uma página separada.
+    # Lógica de agrupamento adaptativa
+    # Para grupos ímpares (3 grupos): padrão alternado
+    # Para grupos pares (6 grupos): padrão sequencial
     imagens_combinadas = []
     n = len(imagens)
     print(f"Gerando grupos para {n} imagens...")
 
-    # Monta os pares conforme o padrão desejado
-    pares = [
-        (5, 6), (3, 8),  # Página 1
-        (4, 7), (2, 9),  # Página 2
-        (1, 10),         # Página 3
-        (0, 11)          # Página 4
-    ] if n == 12 else []
+    pares = []
+    
+    # Determina se deve usar lógica de grupos ímpares ou pares
+    # Se n <= 6, usa lógica de grupos ímpares (3 grupos)
+    # Se n > 6, usa lógica de grupos pares (6 grupos)
+    usar_grupos_impares = n <= 6
+    
+    if usar_grupos_impares:
+        # Lógica para grupos ímpares (3 grupos)
+        # Grupo 1: imagem 2 + imagem 5
+        # Grupo 2: imagem 3 + Nenhum
+        # Grupo 3: imagem 1 + imagem 6
+        # Grupo 4: imagem 4 + Nenhum
+        bloco = 0
+        while bloco * 6 < n:
+            base = bloco * 6
+            # Grupo 1: (base+1, base+4)
+            idx1 = base + 1
+            idx2 = base + 4
+            if idx1 < n:
+                if idx2 < n:
+                    pares.append((idx1, idx2))
+                else:
+                    pares.append((idx1, None))
+            # Grupo 2: (base+2, None)
+            idx1 = base + 2
+            if idx1 < n:
+                pares.append((idx1, None))
+            # Grupo 3: (base+0, base+5)
+            idx1 = base + 0
+            idx2 = base + 5
+            if idx1 < n:
+                if idx2 < n:
+                    pares.append((idx1, idx2))
+                else:
+                    pares.append((idx1, None))
+            # Grupo 4: (base+3, None)
+            idx1 = base + 3
+            if idx1 < n:
+                pares.append((idx1, None))
+            bloco += 1
+    else:
+        # Lógica para grupos pares (6 grupos)
+        # Grupo 1: imagem 6 + imagem 7
+        # Grupo 2: imagem 4 + imagem 9
+        # Grupo 3: imagem 5 + imagem 8
+        # Grupo 4: imagem 3 + imagem 10
+        # Grupo 5: imagem 2 + imagem 11 (página separada)
+        # Grupo 6: imagem 1 + imagem 12 (página separada)
+        bloco = 0
+        while bloco * 12 < n:
+            base = bloco * 12
+            # Grupo 1: (base+5, base+6)
+            idx1 = base + 5
+            idx2 = base + 6
+            if idx1 < n:
+                if idx2 < n:
+                    pares.append((idx1, idx2))
+                else:
+                    pares.append((idx1, None))
+            # Grupo 2: (base+3, base+8)
+            idx1 = base + 3
+            idx2 = base + 8
+            if idx1 < n:
+                if idx2 < n:
+                    pares.append((idx1, idx2))
+                else:
+                    pares.append((idx1, None))
+            # Grupo 3: (base+4, base+7)
+            idx1 = base + 4
+            idx2 = base + 7
+            if idx1 < n:
+                if idx2 < n:
+                    pares.append((idx1, idx2))
+                else:
+                    pares.append((idx1, None))
+            # Grupo 4: (base+2, base+9)
+            idx1 = base + 2
+            idx2 = base + 9
+            if idx1 < n:
+                if idx2 < n:
+                    pares.append((idx1, idx2))
+                else:
+                    pares.append((idx1, None))
+            # Grupo 5: (base+1, base+10)
+            idx1 = base + 1
+            idx2 = base + 10
+            if idx1 < n:
+                if idx2 < n:
+                    pares.append((idx1, idx2))
+                else:
+                    pares.append((idx1, None))
+            # Grupo 6: (base+0, base+11)
+            idx1 = base + 0
+            idx2 = base + 11
+            if idx1 < n:
+                if idx2 < n:
+                    pares.append((idx1, idx2))
+                else:
+                    pares.append((idx1, None))
+            bloco += 1
 
-    # Generalização para qualquer n >= 4
-    if not pares:
-        left = 0
-        right = n - 1
-        pares_temp = []
-        while left < right:
-            pares_temp.append((left, right))
-            left += 1
-            right -= 1
-        pares = pares_temp
-
-    # Verifica se é múltiplo de 8 para determinar o comportamento
-    eh_multiplo_de_8 = n % 8 == 0
-
-    # Agrupa os pares em páginas de 2 pares (4 imagens)
-    grupos_por_pagina = 2
-    i = 0
-    while i < len(pares):
-        # Se restam menos de 2 pares E não é múltiplo de 8, cada um vai para uma página separada
-        if len(pares) - i <= 2 and not eh_multiplo_de_8:
-            for j in range(i, len(pares)):
-                idx1, idx2 = pares[j]
-                img_combinada = combinar_imagens(imagens[idx1], imagens[idx2])
-                if img_combinada:
-                    imagens_combinadas.append(img_combinada)
-                    print(f"Grupo {len(imagens_combinadas)}: {os.path.basename(imagens[idx1])} + {os.path.basename(imagens[idx2])} (página separada)")
-            break
+    # Processa os pares criados
+    for i, par in enumerate(pares):
+        idx1, idx2 = par
+        if idx2 is None:
+            img_combinada = combinar_imagens(imagens[idx1], None)
+            if img_combinada:
+                imagens_combinadas.append(img_combinada)
+                print(f"Grupo {len(imagens_combinadas)}: {os.path.basename(imagens[idx1])} + Nenhum")
         else:
-            # Página completa com 2 pares (ou múltiplo de 8)
-            for j in range(min(grupos_por_pagina, len(pares) - i)):
-                idx1, idx2 = pares[i + j]
-                img_combinada = combinar_imagens(imagens[idx1], imagens[idx2])
-                if img_combinada:
-                    imagens_combinadas.append(img_combinada)
-                    print(f"Grupo {len(imagens_combinadas)}: {os.path.basename(imagens[idx1])} + {os.path.basename(imagens[idx2])}")
-            i += grupos_por_pagina
+            img_combinada = combinar_imagens(imagens[idx1], imagens[idx2])
+            if img_combinada:
+                imagens_combinadas.append(img_combinada)
+                print(f"Grupo {len(imagens_combinadas)}: {os.path.basename(imagens[idx1])} + {os.path.basename(imagens[idx2])}")
     
     # Cria o PDF
     if imagens_combinadas:
