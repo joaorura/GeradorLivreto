@@ -1,0 +1,12 @@
+# Dependências principais
+Pillow>=8.0.0,<10.0.0
+reportlab>=3.5.0,<3.7.0
+
+# Suporte a PDF (opcional - para extrair páginas de PDFs)
+pdf2image>=1.16.0,<2.0.0
+
+# Dependências do sistema (não instaladas via pip)
+# Poppler: necessário para pdf2image funcionar
+# Windows: https://github.com/oschwartz10612/poppler-windows/releases
+# Linux: sudo apt-get install poppler-utils
+# macOS: brew install poppler 

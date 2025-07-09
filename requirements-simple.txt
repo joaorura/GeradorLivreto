@@ -1,0 +1,7 @@
+# Versão simplificada para evitar problemas de compilação
+Pillow
+reportlab
+pdf2image
+
+# Se houver problemas com reportlab, tente:
+# pip install reportlab --only-binary=all 
