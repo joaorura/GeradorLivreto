@@ -59,19 +59,36 @@ python main.py --input "arquivo.pdf"
 ### Uso com Parâmetros
 
 ```bash
-python main.py --input "caminho/ou/arquivo.pdf" --output "meu_arquivo.pdf"
+python main.py --input "caminho/ou/arquivo.pdf" --output "meu_arquivo.pdf" --tamanho "A6"
 ```
 
 ou usando as versões curtas:
 
 ```bash
-python main.py -i "caminho/ou/arquivo.pdf" -o "meu_arquivo.pdf"
+python main.py -i "caminho/ou/arquivo.pdf" -o "meu_arquivo.pdf" -t "A6"
+```
+
+### Exemplos de Tamanhos
+
+```bash
+# Usar A6 (padrão) - resultado final será A4
+python main.py -i "meus_manuais" -t "A6"
+
+# Usar A5 - resultado final será A3
+python main.py -i "meus_manuais" -t "A5"
+
+# Usar tamanho customizado (300x400 pontos) - resultado final será 600x800 pontos
+python main.py -i "meus_manuais" -t "300,400"
 ```
 
 ### Parâmetros
 
 - `--input`, `-i`: **OBRIGATÓRIO** - Caminho para diretório com imagens PNG ou arquivo PDF
 - `--output`, `-o`: Nome do arquivo PDF de saída (opcional, padrão: "combinado.pdf")
+- `--tamanho`, `-t`: Tamanho de cada grupo (opcional, padrão: "A6")
+  - Tamanhos padrão: A6, A5, A4, A3, letter, legal
+  - Tamanho customizado: formato "largura,altura" em pontos (ex: "300,400")
+  - O resultado final será 4x o tamanho especificado (ex: A6 → A4)
 
 ## Tipos de Entrada
 
@@ -84,6 +101,23 @@ python main.py -i "caminho/ou/arquivo.pdf" -o "meu_arquivo.pdf"
 - Extrai cada página do PDF como uma imagem
 - Processa as páginas na ordem original do PDF
 - Requer `pdf2image` e `poppler` instalados
+
+## Sistema de Tamanhos
+
+O script permite especificar o tamanho de cada grupo de imagens. O resultado final será sempre 4x o tamanho especificado:
+
+- **A6** (padrão) → Página final: **A4**
+- **A5** → Página final: **A3**
+- **A4** → Página final: **A2**
+- **A3** → Página final: **A1**
+- **letter** → Página final: 2x letter
+- **legal** → Página final: 2x legal
+- **Customizado** → Página final: 2x o tamanho especificado
+
+### Como funciona:
+- Cada grupo contém 2 imagens lado a lado
+- Cada página contém 2 grupos (2x2 = 4 imagens por página)
+- O tamanho da página final é sempre 2x2 = 4x o tamanho de cada grupo
 
 ## Padrão de Organização
 
@@ -120,8 +154,11 @@ python main.py -i "meus_manuais" -o "manual_final.pdf"
 # Processar arquivo PDF
 python main.py -i "documento.pdf" -o "documento_combinado.pdf"
 
-# Processar apenas com input (usa nome padrão para saída)
+# Processar apenas com input (usa nome padrão para saída e tamanho A6)
 python main.py -i "meus_manuais"
+
+# Processar com tamanho específico
+python main.py -i "meus_manuais" -t "A5"
 ```
 
 ## Saída

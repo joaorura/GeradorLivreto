@@ -4,7 +4,7 @@ import argparse
 import tempfile
 from PIL import Image, ImageDraw
 from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import A4
+from reportlab.lib.pagesizes import A4, A5, A6, A3, letter, legal
 from reportlab.lib.utils import ImageReader
 import re
 
@@ -14,6 +14,46 @@ try:
 except ImportError:
     PDF2IMAGE_AVAILABLE = False
     print("Aviso: pdf2image não está instalado. Suporte a PDF não disponível.")
+
+# Mapeamento de tamanhos padrão
+TAMANHOS_PADRAO = {
+    'A6': A6,
+    'A5': A5,
+    'A4': A4,
+    'A3': A3,
+    'letter': letter,
+    'legal': legal
+}
+
+def obter_tamanho_pagina(tamanho_grupo):
+    """Converte o tamanho do grupo para o tamanho da página final (4x maior)"""
+    if tamanho_grupo in TAMANHOS_PADRAO:
+        largura_grupo, altura_grupo = TAMANHOS_PADRAO[tamanho_grupo]
+        # Página final será 2x2 = 4x o tamanho do grupo
+        largura_pagina = largura_grupo * 2
+        altura_pagina = altura_grupo * 2
+        return largura_pagina, altura_pagina
+    else:
+        # Tamanho customizado (formato: largura,altura em pontos)
+        try:
+            largura, altura = map(float, tamanho_grupo.split(','))
+            return largura * 2, altura * 2
+        except:
+            print(f"Tamanho inválido: {tamanho_grupo}. Usando A4 como padrão.")
+            return A4
+
+def obter_tamanho_grupo(tamanho_grupo):
+    """Retorna o tamanho de cada grupo individual"""
+    if tamanho_grupo in TAMANHOS_PADRAO:
+        return TAMANHOS_PADRAO[tamanho_grupo]
+    else:
+        # Tamanho customizado
+        try:
+            largura, altura = map(float, tamanho_grupo.split(','))
+            return largura, altura
+        except:
+            print(f"Tamanho inválido: {tamanho_grupo}. Usando A6 como padrão.")
+            return A6
 
 def extrair_paginas_pdf(pdf_path, dpi=300):
     """Extrai todas as páginas de um PDF como imagens"""
@@ -99,12 +139,16 @@ def combinar_imagens(imagem1_path, imagem2_path):
         print(f"Erro ao combinar imagens: {e}")
         return None
 
-def criar_pdf_com_imagens(imagens_combinadas, output_path="output.pdf"):
+def criar_pdf_com_imagens(imagens_combinadas, output_path="output.pdf", tamanho_grupo="A6"):
     """Cria um PDF com as imagens combinadas em alta qualidade (300 DPI)"""
     try:
-        largura_pagina = 595.276
-        altura_pagina = 841.890
-        margem = 50
+        # Obtém o tamanho da página final (4x o tamanho do grupo)
+        largura_pagina, altura_pagina = obter_tamanho_pagina(tamanho_grupo)
+        
+        # Obtém o tamanho de cada grupo individual
+        largura_grupo, altura_grupo = obter_tamanho_grupo(tamanho_grupo)
+        
+        margem = 20  # Margem menor para aproveitar melhor o espaço
         largura_disponivel = largura_pagina - 2 * margem
         altura_disponivel = altura_pagina - 2 * margem
         grupos_por_pagina = 2
@@ -201,7 +245,7 @@ def criar_pdf_com_imagens(imagens_combinadas, output_path="output.pdf"):
     except Exception as e:
         print(f"Erro ao criar PDF: {e}")
 
-def main(input_path, output_file=None):
+def main(input_path, output_file=None, tamanho_grupo="A6"):
     # Se não foi fornecido arquivo de saída, usa o padrão
     if output_file is None:
         output_file = "combinado.pdf"
@@ -240,6 +284,12 @@ def main(input_path, output_file=None):
     print(f"Encontradas {len(imagens)} imagens:")
     for img in imagens:
         print(f"  - {os.path.basename(img)}")
+    
+    # Informa sobre o tamanho sendo usado
+    largura_grupo, altura_grupo = obter_tamanho_grupo(tamanho_grupo)
+    largura_pagina, altura_pagina = obter_tamanho_pagina(tamanho_grupo)
+    print(f"Tamanho de cada grupo: {tamanho_grupo} ({largura_grupo:.1f} x {altura_grupo:.1f} pontos)")
+    print(f"Tamanho da página final: {largura_pagina:.1f} x {altura_pagina:.1f} pontos (4x o tamanho do grupo)")
     
     # Nova lógica: 2 pares por página (4 imagens por página). Se sobrar menos de 4 imagens, cada par vai para uma página separada.
     imagens_combinadas = []
@@ -293,7 +343,7 @@ def main(input_path, output_file=None):
     
     # Cria o PDF
     if imagens_combinadas:
-        criar_pdf_com_imagens(imagens_combinadas, output_file)
+        criar_pdf_com_imagens(imagens_combinadas, output_file, tamanho_grupo)
         
         # Limpa arquivos temporários se necessário
         if usar_temp_dir and temp_dir:
@@ -312,8 +362,10 @@ if __name__ == "__main__":
                        help='Caminho para o diretório com imagens PNG ou arquivo PDF')
     parser.add_argument('--output', '-o', 
                        help='Nome do arquivo PDF de saída (padrão: "combinado.pdf")')
+    parser.add_argument('--tamanho', '-t', default='A6',
+                       help='Tamanho de cada grupo (A6, A5, A4, A3, letter, legal ou customizado como "largura,altura")')
     
     args = parser.parse_args()
     
     # Executa o script
-    main(args.input, args.output)
+    main(args.input, args.output, args.tamanho)
